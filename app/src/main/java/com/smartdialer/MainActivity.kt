@@ -11,7 +11,9 @@ import android.telecom.TelecomManager
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.widget.GridLayout
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Switch
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity() {
             text = "Make SmartDialer your phone app"
             setOnClickListener { requestDefaultPhoneRole() }
         })
+        addView(ruleCard())
 
         display = TextView(context).apply {
             text = "Enter a number"
@@ -112,6 +115,35 @@ class MainActivity : AppCompatActivity() {
                 textSize = 14f
                 setTextColor(0xff4d4860.toInt())
             })
+        })
+    }
+
+    private fun ruleCard() = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        setPadding(18, 12, 18, 12)
+        setBackgroundColor(0xffebe8ff.toInt())
+        val toggle = Switch(context).apply {
+            text = "Ghost DND"
+            textSize = 18f
+            isChecked = RuleStore(this@MainActivity).silentEnabled
+        }
+        val target = EditText(context).apply {
+            hint = "Number to silence"
+            inputType = android.text.InputType.TYPE_CLASS_PHONE
+            setText(RuleStore(this@MainActivity).silentNumber)
+        }
+        toggle.setOnCheckedChangeListener { _, checked ->
+            RuleStore(this@MainActivity).silentEnabled = checked
+        }
+        addView(toggle)
+        addView(TextView(context).apply {
+            text = "Uses Android call screening and keeps the call in history."
+            setTextColor(0xff514d61.toInt())
+        })
+        addView(target)
+        addView(MaterialButton(context).apply {
+            text = "Save rule"
+            setOnClickListener { RuleStore(this@MainActivity).silentNumber = target.text.toString() }
         })
     }
 
