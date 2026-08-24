@@ -2,11 +2,14 @@ package com.smartdialer
 
 import android.Manifest
 import android.app.role.RoleManager
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.provider.CallLog
+import android.provider.ContactsContract
 import android.telecom.TelecomManager
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
@@ -32,7 +35,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        permissionRequest.launch(arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_CONTACTS))
+        permissionRequest.launch(arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_CONTACTS, Manifest.permission.READ_CALL_LOG))
         setContentView(createScreen())
     }
 
@@ -56,6 +59,14 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { requestDefaultPhoneRole() }
         })
         addView(ruleCard())
+        addView(MaterialButton(context).apply {
+            text = "Contacts"
+            setOnClickListener { showContacts() }
+        })
+        addView(MaterialButton(context).apply {
+            text = "Recent calls"
+            setOnClickListener { showRecents() }
+        })
 
         display = TextView(context).apply {
             text = "Enter a number"
@@ -181,6 +192,58 @@ class MainActivity : AppCompatActivity() {
         } else {
             startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
         }
+    }
+
+    private fun showContacts() {
+        if (checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return
+        val names = mutableListOf<String>()
+        contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            arrayOf(
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                ContactsContract.CommonDataKinds.Phone.NUMBER
+            ),
+            null, null,
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+        )?.use { cursor ->
+            val name = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val phone = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+            while (cursor.moveToNext() && names.size < 30) {
+                names += cursor.getString(name).orEmpty() + "\n" + cursor.getString(phone).orEmpty()
+            }
+        }
+        showList("Contacts", names.ifEmpty { listOf("No contacts found") })
+    }
+
+    private fun showRecents() {
+        if (checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) return
+        val calls = mutableListOf<String>()
+        contentResolver.query(
+            CallLog.Calls.CONTENT_URI,
+            arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.TYPE, CallLog.Calls.DATE),
+            null, null, CallLog.Calls.DATE + " DESC"
+        )?.use { cursor ->
+            val number = cursor.getColumnIndex(CallLog.Calls.NUMBER)
+            val type = cursor.getColumnIndex(CallLog.Calls.TYPE)
+            while (cursor.moveToNext() && calls.size < 30) {
+                val kind = when (cursor.getInt(type)) {
+                    CallLog.Calls.INCOMING_TYPE -> "Incoming"
+                    CallLog.Calls.OUTGOING_TYPE -> "Outgoing"
+                    CallLog.Calls.MISSED_TYPE -> "Missed"
+                    else -> "Call"
+                }
+                calls += "$kind\n${cursor.getString(number).orEmpty()}"
+            }
+        }
+        showList("Recent calls", calls.ifEmpty { listOf("No recent calls") })
+    }
+
+    private fun showList(title: String, items: List<String>) {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setItems(items.toTypedArray(), null)
+            .setPositiveButton("Close", null)
+            .show()
     }
 
     private fun placeCall() {
