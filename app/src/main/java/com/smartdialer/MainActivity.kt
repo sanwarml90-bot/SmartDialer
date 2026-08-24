@@ -145,6 +145,10 @@ class MainActivity : AppCompatActivity() {
             text = "Save rule"
             setOnClickListener { RuleStore(this@MainActivity).silentNumber = target.text.toString() }
         })
+        addView(MaterialButton(context).apply {
+            text = "Enable call screening"
+            setOnClickListener { requestScreeningRole() }
+        })
     }
 
     private fun append(value: Char) {
@@ -168,6 +172,15 @@ class MainActivity : AppCompatActivity() {
         if (roles?.isRoleAvailable(RoleManager.ROLE_DIALER) == true) {
             startActivity(roles.createRequestRoleIntent(RoleManager.ROLE_DIALER))
         } else startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+    }
+
+    private fun requestScreeningRole() {
+        val roles = ContextCompat.getSystemService(this, RoleManager::class.java)
+        if (roles?.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING) == true) {
+            startActivity(roles.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING))
+        } else {
+            startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+        }
     }
 
     private fun placeCall() {
