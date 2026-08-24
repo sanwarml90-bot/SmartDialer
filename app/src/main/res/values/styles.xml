@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.SmartDialer" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="colorPrimary">#5B4BDB</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F8F7FF</item>
+        <item name="android:navigationBarColor">#F8F7FF</item>
+    </style>
+</resources>
